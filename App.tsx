@@ -9,6 +9,7 @@ import RegisterScreen from './src/screens/Auth/RegisterScreen';
 import HomeScreen from './src/screens/Home/HomeScreen';
 import RegisterPotholeScreen from './src/screens/Pothole/RegisterPotholeScreen';
 import ListPotholesScreen from './src/screens/PotholeList/ListPotholesScreen';
+import ReportDetailScreen from './src/screens/PotholeDetail/ReportDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -28,6 +29,7 @@ export default function App() {
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="RegisterPothole" component={RegisterPotholeScreen} />
           <Stack.Screen name="ListPotholes" component={ListPotholesScreen} />
+          <Stack.Screen name="ReportDetail" component={ReportDetailScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

@@ -20,6 +20,8 @@ const handleVerBuracos = () => {
     navigation.navigate('ListPotholes', { userName });
   };
 
+
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView

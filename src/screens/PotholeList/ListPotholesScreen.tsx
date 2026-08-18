@@ -82,9 +82,8 @@ type Props = NativeStackScreenProps<any, 'ListPotholes'>;
 export default function ListPotholesScreen({ route, navigation }: Props) {
   const userName = route.params?.userName || 'Fulano';
 
-  const handleOpenDetails = (item: PotholeItem) => {
-    // Próximo passo: tela de detalhes (iPhone 17 - 7)
-    // navigation.navigate('ReportDetail', { item, userName });
+const handleOpenDetails = (item: PotholeItem) => {
+    navigation.navigate('ReportDetail', { item, userName });
   };
 
   return (
