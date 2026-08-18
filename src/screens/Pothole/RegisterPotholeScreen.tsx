@@ -7,6 +7,8 @@ import {
   Platform,
   ScrollView,
   Alert,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -14,12 +16,17 @@ import Svg, { Path } from 'react-native-svg';
 
 import { AppHeader } from '../../components/AppHeader';
 import { InputField } from '../../components/InputField';
+import { useLocation } from '../../hook/LocationMap';
+import { useImagePicker } from '../../hook/useImagePicker'; // Importação do novo Hook
 import { styles } from './styles';
 
 type Props = NativeStackScreenProps<any, 'RegisterPothole'>;
 
 export default function RegisterPotholeScreen({ route, navigation }: Props) {
   const userName = route.params?.userName || 'Fulano';
+
+  const { getLocation, loadingLocation } = useLocation();
+  const { imageUri, takePhoto, pickImage } = useImagePicker();
 
   const [formVisible, setFormVisible] = useState(false);
   const [locationMode, setLocationMode] = useState<'auto' | 'manual' | null>(null);
@@ -31,18 +38,24 @@ export default function RegisterPotholeScreen({ route, navigation }: Props) {
   const [cidade, setCidade] = useState('');
   const [uf, setUf] = useState('');
 
-  // Ativa modo Automático (pré-preenche fictício)
-  const handleAutoLocation = () => {
+  // Localização Automática
+  const handleAutoLocation = async () => {
     setLocationMode('auto');
-    setFormVisible(true);
-    setRua('Av. Brasil');
-    setNumero('1500');
-    setBairro('Centro');
-    setCidade('Americana');
-    setUf('SP');
+    const result = await getLocation();
+
+    if (result) {
+      setRua(result.rua);
+      setNumero(result.numero);
+      setBairro(result.bairro);
+      setCidade(result.cidade);
+      setUf(result.uf);
+      setFormVisible(true);
+    } else {
+      setFormVisible(true);
+    }
   };
 
-  // Ativa modo Manual (limpa para digitação)
+  // Localização Manual
   const handleManualLocation = () => {
     setLocationMode('manual');
     setFormVisible(true);
@@ -53,11 +66,23 @@ export default function RegisterPotholeScreen({ route, navigation }: Props) {
     setUf('');
   };
 
+  // Menu para escolher entre Tirar Foto ou Galeria
   const handleCapturePhoto = () => {
-    Alert.alert('Câmera', 'Recurso da câmera será conectado aqui.');
+    Alert.alert(
+      'Adicionar Foto',
+      'Escolha a origem da foto do buraco:',
+      [
+        { text: 'Câmera', onPress: takePhoto },
+        { text: 'Galeria', onPress: pickImage },
+        { text: 'Cancelar', style: 'cancel' },
+      ],
+      { cancelable: true }
+    );
   };
 
+  // Validação: A imagem agora também é obrigatória
   const isFormValid =
+    imageUri !== null &&
     rua.trim().length > 0 &&
     numero.trim().length > 0 &&
     bairro.trim().length > 0 &&
@@ -99,14 +124,27 @@ export default function RegisterPotholeScreen({ route, navigation }: Props) {
             <View style={styles.photoWrapper}>
               <Text style={styles.photoLabel}>Tirar foto</Text>
               <TouchableOpacity
-                style={styles.cameraBox}
+                style={[
+                  styles.cameraBox,
+                  imageUri && { backgroundColor: 'transparent' } // Remove o fundo se tiver imagem
+                ]}
                 onPress={handleCapturePhoto}
                 activeOpacity={0.8}
               >
-                <Svg width={100} height={44} viewBox="0 0 100 44" fill="#FFFFFF">
-                  <Path d="M18 10h6v8h8v6h-8v8h-6v-8h-8v-6h8z" />
-                  <Path d="M56 12h8l3-4h14l3 4h8c2.2 0 4 1.8 4 4v16c0 2.2-1.8 4-4 4H56c-2.2 0-4-1.8-4-4V16c0-2.2 1.8-4 4-4zm18 20c4.4 0 8-3.6 8-8s-3.6-8-8-8-8 3.6-8 8 3.6 8 8 8zm0-3c2.8 0 5-2.2 5-5s-2.2-5-5-5-5 2.2-5 5 2.2 5 5 5z" />
-                </Svg>
+                {imageUri ? (
+                  // Se existir a imagem, mostra a foto capturada
+                  <Image
+                    source={{ uri: imageUri }}
+                    style={{ width: 150, height: 95, borderRadius: 16 }}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  // Caso contrário, mostra o ícone SVG
+                  <Svg width={100} height={44} viewBox="0 0 100 44" fill="#FFFFFF">
+                    <Path d="M18 10h6v8h8v6h-8v8h-6v-8h-8v-6h8z" />
+                    <Path d="M56 12h8l3-4h14l3 4h8c2.2 0 4 1.8 4 4v16c0 2.2-1.8 4-4 4H56c-2.2 0-4-1.8-4-4V16c0-2.2 1.8-4 4-4zm18 20c4.4 0 8-3.6 8-8s-3.6-8-8-8-8 3.6-8 8 3.6 8 8 8zm0-3c2.8 0 5-2.2 5-5s-2.2-5-5-5-5 2.2-5 5 2.2 5 5 5z" />
+                  </Svg>
+                )}
               </TouchableOpacity>
             </View>
 
@@ -118,9 +156,14 @@ export default function RegisterPotholeScreen({ route, navigation }: Props) {
                   locationMode === 'auto' && styles.locBtnActive,
                 ]}
                 onPress={handleAutoLocation}
+                disabled={loadingLocation}
                 activeOpacity={0.8}
               >
-                <Text style={styles.locBtnText}>Localização atual automatica</Text>
+                {loadingLocation ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.locBtnText}>Localização atual automatica</Text>
+                )}
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -175,35 +218,37 @@ export default function RegisterPotholeScreen({ route, navigation }: Props) {
             )}
 
             {/* Grupo de Ações: Cancelar e Salvar */}
-            <View style={styles.actionButtonsContainer}>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.cancelBtn]}
-                onPress={handleCancel}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.cancelBtnText}>Cancelar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.actionBtn,
-                  isFormValid ? styles.saveBtnActive : styles.saveBtnDisabled,
-                ]}
-                onPress={handleSave}
-                disabled={!isFormValid}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={
-                    isFormValid
-                      ? styles.saveBtnTextActive
-                      : styles.saveBtnTextDisabled
-                  }
+            {formVisible && (
+              <View style={styles.actionButtonsContainer}>
+                <TouchableOpacity
+                  style={[styles.actionBtn, styles.cancelBtn]}
+                  onPress={handleCancel}
+                  activeOpacity={0.7}
                 >
-                  Salvar
-                </Text>
-              </TouchableOpacity>
-            </View>
+                  <Text style={styles.cancelBtnText}>Cancelar</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.actionBtn,
+                    isFormValid ? styles.saveBtnActive : styles.saveBtnDisabled,
+                  ]}
+                  onPress={handleSave}
+                  disabled={!isFormValid}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={
+                      isFormValid
+                        ? styles.saveBtnTextActive
+                        : styles.saveBtnTextDisabled
+                    }
+                  >
+                    Salvar
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
